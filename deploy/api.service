@@ -1,0 +1,14 @@
+[Unit]
+Description=Servicio API Segura SSO
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/sso-lab/api
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+EnvironmentFile=/home/ubuntu/sso-lab/api/.env
+
+[Install]
+WantedBy=multi-user.target

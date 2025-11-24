@@ -1,0 +1,14 @@
+[Unit]
+Description=Servicio Web BFF SSO
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/sso-lab/web-bff
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+EnvironmentFile=/home/ubuntu/sso-lab/web-bff/.env
+
+[Install]
+WantedBy=multi-user.target
