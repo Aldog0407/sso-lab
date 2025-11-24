@@ -1,43 +1,61 @@
-# Práctica Integral SSO: Keycloak + BFF + API
+# Practica Integral SSO: Keycloak + BFF + API
 
-Este repositorio contiene la implementación del laboratorio de SSO seguro utilizando OpenID Connect (OIDC) con flujo Authorization Code + PKCE.
+Este repositorio contiene la implementacion del laboratorio de SSO seguro utilizando OpenID Connect (OIDC) con flujo Authorization Code + PKCE.
 
-## 📂 Estructura del Proyecto
+## Estructura del Proyecto
 
-- **`/keycloak`**: (No incluido en repo, se descarga aparte). Servidor de Identidad (IdP).
-- **`/web-bff`**: Backend for Frontend (Node.js/Express) en puerto `3000`. Maneja la sesión y el canje de tokens.
-- **`/api`**: Servidor de Recursos (Node.js/Express) en puerto `4000`. Protegido validando firma JWT (RS256).
+```
+sso-lab/
+├── web-bff/                    # Backend for Frontend (Puerto 3000)
+│   └── src/
+│       ├── config/             # Configuracion centralizada
+│       ├── middleware/         # Session, auth, security, logging
+│       ├── routes/             # Auth, home, proxy
+│       ├── services/           # Keycloak, API client
+│       ├── templates/          # HTML templates
+│       ├── app.js              # Express app setup
+│       └── index.js            # Entry point
+├── api/                        # Servidor de Recursos (Puerto 4000)
+│   └── src/
+│       ├── config/             # Configuracion centralizada
+│       ├── middleware/         # CORS, JWT auth, security
+│       ├── routes/             # Public, profile endpoints
+│       ├── app.js              # Express app setup
+│       └── index.js            # Entry point
+├── deploy/                     # SystemD service files
+└── keycloak/                   # (No incluido, se descarga aparte)
+```
 
 ---
 
-## 🚀 Guía de Despliegue (Ubuntu/Linux)
+## Guia de Despliegue (Ubuntu/Linux)
 
 ### 1. Requisitos Previos
 
-- [cite_start]Java 21 (JDK) [cite: 32]
-- [cite_start]Node.js 20 (LTS) [cite: 45]
+- Java 21 (JDK)
+- Node.js 18+ (LTS)
 - Terminal con acceso a puertos 8080, 3000 y 4000.
 
 ### 2. Puesta en marcha de Keycloak (Puerto 8080)
 
-1.  Descargar Keycloak (versión 26.x o superior) y descomprimir.
+1.  Descargar Keycloak (version 26.x o superior) y descomprimir.
 2.  Entrar a la carpeta `bin` y ejecutar en modo desarrollo:
     ```bash
     ./kc.sh start-dev
     ```
 3.  Entrar a `http://localhost:8080` y crear usuario admin (si no existe).
 
-#### ⚙️ Configuración Obligatoria de Keycloak
+#### Configuracion Obligatoria de Keycloak
 
-Para que el código funcione, se debe configurar lo siguiente en la consola de administración:
+Para que el codigo funcione, se debe configurar lo siguiente en la consola de administracion:
 
-1.  [cite_start]**Crear Realm:** Nombre `demo`[cite: 155].
+1.  **Crear Realm:** Nombre `demo`.
 2.  **Crear Cliente:**
     - **Client ID:** `web-app`
     - **Client Protocol:** `openid-connect`
-    - [cite_start]**Access Type:** `Public` (necesario para PKCE sin client secret en front)[cite: 174].
+    - **Access Type:** `Confidential` (con client secret).
     - **Standard Flow:** Activado.
-    - [cite_start]**Valid Redirect URIs:** `http://localhost:3000/callback`[cite: 175].
+    - **Valid Redirect URIs:** `http://localhost:3000/callback`.
     - **Web Origins:** `+` (o `http://localhost:3000`).
 3.  **Crear Usuario de prueba:**
     - Ir a Users > Add user > Username: `usuario1`.
@@ -47,7 +65,7 @@ Para que el código funcione, se debe configurar lo siguiente en la consola de a
 
 ### 3. Puesta en marcha del Web BFF (Puerto 3000)
 
-Este servicio es la cara visible de la aplicación.
+Este servicio es la cara visible de la aplicacion.
 
 1.  Abrir una **nueva terminal**.
 2.  Navegar a la carpeta y preparar entorno:
@@ -55,24 +73,34 @@ Este servicio es la cara visible de la aplicación.
     cd web-bff
     npm install
     ```
-3.  Crear archivo `.env` (si no existe) con este contenido:
+3.  Crear archivo `.env` copiando el ejemplo:
+    ```bash
+    cp .env.example .env
+    ```
+4.  Editar `.env` con tus valores:
     ```env
     PORT=3000
+    NODE_ENV=development
+    SESSION_SECRET=secreto_super_seguro_cambiar
     ISSUER=http://localhost:8080/realms/demo
     CLIENT_ID=web-app
-    SESSION_SECRET=secreto_super_seguro_cambiar
+    CLIENT_SECRET=tu-client-secret
     ```
-4.  Iniciar servicio:
+5.  Iniciar servicio:
     ```bash
-    node index.js
+    # Desarrollo (con auto-reload)
+    npm run dev
+
+    # Produccion
+    npm start
     ```
-    _Debe indicar: `🚀 Web BFF corriendo en http://localhost:3000`_
+    _Debe indicar: `[Server] Web BFF running on http://localhost:3000`_
 
 ---
 
 ### 4. Puesta en marcha de la API (Puerto 4000)
 
-Este servicio valida los tokens criptográficamente.
+Este servicio valida los tokens criptograficamente.
 
 1.  Abrir una **tercera terminal**.
 2.  Navegar a la carpeta y preparar entorno:
@@ -80,32 +108,62 @@ Este servicio valida los tokens criptográficamente.
     cd api
     npm install
     ```
-3.  Crear archivo `.env` con este contenido:
+3.  Crear archivo `.env` copiando el ejemplo:
+    ```bash
+    cp .env.example .env
+    ```
+4.  Editar `.env` con tus valores:
     ```env
     PORT=4000
+    NODE_ENV=development
     ISSUER=http://localhost:8080/realms/demo
     JWKS_URI=http://localhost:8080/realms/demo/protocol/openid-connect/certs
     ```
-4.  Iniciar servicio:
+5.  Iniciar servicio:
     ```bash
-    node index.js
+    # Desarrollo (con auto-reload)
+    npm run dev
+
+    # Produccion
+    npm start
     ```
-    _Debe indicar: `🛡️ API Segura corriendo en http://localhost:4000`_
+    _Debe indicar: `[Server] API running on http://localhost:4000`_
 
 ---
 
-## ✅ Pruebas de Funcionamiento
+## Pruebas de Funcionamiento
 
-1.  Abrir navegador (preferiblemente Incógnito) en `http://localhost:3000`.
-2.  Hacer clic en **"Iniciar Sesión con Keycloak"**.
+1.  Abrir navegador (preferiblemente Incognito) en `http://localhost:3000`.
+2.  Hacer clic en **"Iniciar Sesion con Keycloak"**.
 3.  Loguearse con el usuario creado (`usuario1` / `1234`).
 4.  Verificar que se muestran los datos del usuario (JSON).
-5.  Hacer clic en el botón azul **"Invocar API Segura"**.
-6.  **Resultado esperado:** Mensaje verde `¡ACCESO CONCEDIDO DESDE API 4000!`.
+5.  Hacer clic en el boton **"Invocar API Segura"**.
+6.  **Resultado esperado:** Mensaje verde `ACCESO CONCEDIDO - API Protegida`.
 
-## 🛠️ Tecnologías Usadas
+## Endpoints Disponibles
 
-- **Keycloak:** Gestión de identidad (OIDC).
-- **PKCE:** Protección contra intercepción de código (RFC 7636).
-- **Jose (Lib):** Validación segura de JWT y JWKS.
-- **Express-Session:** Gestión de sesión en memoria del servidor.
+### Web BFF (Puerto 3000)
+| Endpoint | Descripcion |
+|----------|-------------|
+| `GET /` | Pagina principal (login o dashboard) |
+| `GET /login` | Inicia flujo OIDC con PKCE |
+| `GET /callback` | Callback de autenticacion |
+| `GET /logout` | Cierra sesion |
+| `GET /api-proxy` | Proxy autenticado hacia la API |
+| `GET /health` | Health check |
+
+### API (Puerto 4000)
+| Endpoint | Auth | Descripcion |
+|----------|------|-------------|
+| `GET /api/publico` | No | Endpoint publico |
+| `GET /api/perfil` | Si | Perfil del usuario autenticado |
+| `GET /api/perfil/detalle` | Si | Informacion detallada del token |
+| `GET /api/health` | No | Health check |
+
+## Tecnologias Usadas
+
+- **Keycloak:** Gestion de identidad (OIDC).
+- **PKCE:** Proteccion contra intercepcion de codigo (RFC 7636).
+- **Jose (Lib):** Validacion segura de JWT y JWKS.
+- **Express-Session:** Gestion de sesion en memoria del servidor.
+- **Express 5:** Framework HTTP con soporte nativo para async/await.
