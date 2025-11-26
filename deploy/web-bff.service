@@ -1,14 +1,27 @@
 [Unit]
-Description=Servicio Web BFF SSO
+Description=Web BFF SSO Service
+Documentation=https://github.com/your-repo/sso-lab
 After=network.target
 
 [Service]
 Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/sso-lab/web-bff
-ExecStart=/usr/bin/node index.js
+ExecStart=/usr/bin/node src/index.js
 Restart=on-failure
+RestartSec=5
 EnvironmentFile=/home/ubuntu/sso-lab/web-bff/.env
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/sso-lab/web-bff
+
+# Resource limits
+LimitNOFILE=65535
+MemoryMax=512M
 
 [Install]
 WantedBy=multi-user.target
